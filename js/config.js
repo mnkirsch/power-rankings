@@ -3,11 +3,11 @@
 // ═══════════════════════════════════════════════
 
 const CONFIG = {
-  supabaseUrl:  'YOUR_SUPABASE_URL',
-  supabaseKey:  'YOUR_SUPABASE_ANON_KEY',
+  supabaseUrl:  'https://edrmasdqceghodetpfhn.supabase.co',
+  supabaseKey:  'https://edrmasdqceghodetpfhn.supabase.co',
 
   commissionerUsername: 'Purple_Kirsch',
-  commissionerPassword: 'PLACEHOLDER', // change before pushing to GitHub
+  commissionerPassword: 'kuschy', // change before pushing to GitHub
 
   leagueIds: [
     '1348027616598188032',
