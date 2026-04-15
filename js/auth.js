@@ -246,3 +246,8 @@ function timeAgo(dateStr) {
   const d = Math.floor(h / 24);
   return `${d}d ago`;
 }
+
+function weekLabel(week) {
+  return week === 0 ? 'Preseason' : `Week ${week}`;
+}
+
