@@ -4,7 +4,7 @@
 
 const CONFIG = {
   supabaseUrl:  'https://edrmasdqceghodetpfhn.supabase.co',
-  supabaseKey:  'https://edrmasdqceghodetpfhn.supabase.co',
+  supabaseKey:  'sb_publishable_mcogOpqB4L74wKDTEVFcQg_ewO3NY88',
 
   commissionerUsername: 'Purple_Kirsch',
   commissionerPassword: 'kuschy', // change before pushing to GitHub
