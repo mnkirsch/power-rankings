@@ -134,7 +134,10 @@ async function loadProposalDetail(id) {
   const authorName = proposal.is_anonymous ? 'Anonymous' : proposal.author_display_name;
   document.getElementById('proposal-detail-content').innerHTML = `
     <div class="proposal-detail-card">
-      <div class="proposal-detail-title">${proposal.title}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div class="proposal-detail-title">${proposal.title}</div>
+        ${isCommissioner ? `<button onclick="deleteProposal('${proposal.id}')" style="background:rgba(255,77,106,.1);border:1px solid rgba(255,77,106,.25);color:var(--red);border-radius:6px;padding:4px 10px;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Delete</button>` : ''}
+      </div>
       <div class="proposal-detail-meta">
         <span>${authorName}</span>
         <span>·</span>
@@ -246,6 +249,19 @@ async function castProposalVote(proposalId, vote) {
     if (error) throw error;
     showToast(`Voted ${vote}!`);
     await loadProposalDetail(proposalId);
+  } catch(e) {
+    showToast('Failed: ' + e.message, true);
+  }
+}
+
+async function deleteProposal(id) {
+  if (!confirm('Delete this proposal? This cannot be undone.')) return;
+  try {
+    const { error } = await getSB().from('proposals').delete().eq('id', id);
+    if (error) throw error;
+    showToast('Proposal deleted.');
+    showProposalsList();
+    await loadProposalsList();
   } catch(e) {
     showToast('Failed: ' + e.message, true);
   }
