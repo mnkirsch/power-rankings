@@ -8,8 +8,8 @@ let matchupsCache = null;
 async function renderTeamsPage() {
   if (!leagueData) return;
   showTeamsList();
-  document.getElementById('teams-week-chip').textContent = `Week ${currentWeek}`;
-
+document.getElementById('teams-week-chip').textContent = weekLabel(currentWeek);
+  
   const list = document.getElementById('teams-list');
   list.innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
 
