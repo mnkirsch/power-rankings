@@ -157,3 +157,20 @@ function seasonPts(roster) {
 function ptsAgainst(roster) {
   return ((roster.settings.fpts_against || 0) + (roster.settings.fpts_against_decimal || 0) / 100).toFixed(1);
 }
+
+// ── SUPABASE — LEAGUE SETTINGS ───────────────────────────────────────────────
+
+async function getLeagueSettings(leagueId) {
+  const { data } = await getSB().from('league_settings')
+    .select('*').eq('league_id', leagueId).single();
+  return data;
+}
+
+async function saveLeagueSettings(leagueId, activeWeek) {
+  const { error } = await getSB().from('league_settings').upsert({
+    league_id:   leagueId,
+    active_week: activeWeek,
+    updated_at:  new Date().toISOString(),
+  }, { onConflict: 'league_id' });
+  if (error) throw error;
+}
