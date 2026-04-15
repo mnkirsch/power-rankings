@@ -1,18 +1,16 @@
 // ═══════════════════════════════════════════════
-//  AUTH — login / logout / session
+//  AUTH — login / logout / session / routing
 // ═══════════════════════════════════════════════
 
-// Session state
-let currentUser      = null;
-let currentLeague    = null;  // { id, name, info }
-let leagueData       = null;  // { rosters, users, um, sr }
-let currentWeek      = 1;
-let isCommissioner   = false;
+let currentUser    = null;
+let currentLeague  = null;
+let leagueData     = null;
+let currentWeek    = 1;
+let isCommissioner = false;
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // Validate Supabase config
   if (CONFIG.supabaseUrl === 'YOUR_SUPABASE_URL') {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -30,8 +28,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 function onUsernameInput() {
   const v = document.getElementById('login-uname').value.trim().toLowerCase();
-  const isComm = v === CONFIG.commissionerUsername.toLowerCase();
-  document.getElementById('comm-pw-wrap').style.display = isComm ? 'block' : 'none';
+  document.getElementById('comm-pw-wrap').style.display =
+    v === CONFIG.commissionerUsername.toLowerCase() ? 'block' : 'none';
   clearErr('login-err');
   document.getElementById('league-picker').style.display = 'none';
 }
@@ -65,7 +63,6 @@ async function doLogin() {
     const nflState = await getNFLState();
     currentWeek = nflState.week || 1;
 
-    // Find which leagues user is in
     const memberOf = [];
     for (const id of CONFIG.leagueIds) {
       try {
@@ -88,7 +85,7 @@ async function doLogin() {
     if (e.message === 'not_found' || e.message.includes('404')) {
       showErr('login-err', 'Username Not Found',
         `No Sleeper account for "@${document.getElementById('login-uname').value.trim()}". ` +
-        `Check the spelling — it's the @handle under your name in the Sleeper app.`);
+        `Check the spelling — it's the @handle in your Sleeper profile.`);
     } else if (e.message === 'not_in_league') {
       showErr('login-err', 'Not In League', `Your account isn't in either of the two leagues this app covers.`);
     } else {
@@ -100,7 +97,6 @@ async function doLogin() {
 }
 
 function renderLeaguePicker(leagues) {
-  const wrap = document.getElementById('league-picker');
   const opts = document.getElementById('league-opts');
   opts.innerHTML = '';
   leagues.forEach(l => {
@@ -114,7 +110,7 @@ function renderLeaguePicker(leagues) {
     d.onclick = () => loadLeague(l);
     opts.appendChild(d);
   });
-  wrap.style.display = 'block';
+  document.getElementById('league-picker').style.display = 'block';
 }
 
 async function loadLeague(league) {
@@ -138,28 +134,28 @@ async function loadLeague(league) {
 }
 
 function enterApp() {
-  // Topbar
   document.getElementById('league-chip').textContent = currentLeague.name;
   const uav = document.getElementById('user-chip-av');
   if (currentUser.avatar) {
     uav.innerHTML = `<img src="${SLEEPER_CDN}${currentUser.avatar}" onerror="this.parentElement.innerHTML='👤'" style="width:100%;height:100%;object-fit:cover"/>`;
   }
   document.getElementById('user-chip-name').textContent = currentUser.display_name || currentUser.username;
-  document.getElementById('comm-chip').style.display = isCommissioner ? 'inline' : 'none';
+
+  // Show commissioner nav item
+  const commBtn = document.getElementById('comm-nav-btn');
+  if (commBtn) commBtn.style.display = isCommissioner ? 'inline-block' : 'none';
 
   showMainScreen();
-  switchPage('vote', document.querySelector('.nav-item'));
+  switchPage('home', document.querySelector('.tnav-item'));
 }
 
 // ── LOGOUT ────────────────────────────────────────────────────────────────────
 
 function logout() {
-  currentUser = null; currentLeague = null; leagueData = null;
-  isCommissioner = false;
-  // Reset caches
+  currentUser = null; currentLeague = null; leagueData = null; isCommissioner = false;
   if (typeof playersCache !== 'undefined') { playersCache = null; matchupsCache = null; }
   if (typeof historyChart !== 'undefined' && historyChart) { historyChart.destroy(); historyChart = null; }
-  // Reset login form
+  if (typeof currentProposalId !== 'undefined') currentProposalId = null;
   document.getElementById('login-uname').value = '';
   document.getElementById('comm-pw').value = '';
   document.getElementById('comm-pw-wrap').style.display = 'none';
@@ -168,7 +164,7 @@ function logout() {
   showLoginScreen();
 }
 
-// ── SCREEN / PAGE SWITCHING ───────────────────────────────────────────────────
+// ── SCREEN / PAGE ROUTING ─────────────────────────────────────────────────────
 
 function showLoginScreen() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -182,7 +178,7 @@ function showMainScreen() {
 
 function switchPage(name, btn) {
   // Update nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.tnav-item').forEach(n => n.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
   // Swap page
@@ -193,15 +189,20 @@ function switchPage(name, btn) {
   const pg = document.getElementById(`page-${name}`);
   if (pg) { pg.style.display = 'block'; pg.classList.add('active'); }
 
-  // Load page data
-  if (name === 'vote')     renderVotePage();
-  if (name === 'results')  renderResultsPage();
-  if (name === 'history')  renderHistoryPage();
-  if (name === 'summary')  renderSummaryPage();
-  if (name === 'teams')    renderTeamsPage();
+  // Load data
+  if      (name === 'home')          renderHomePage();
+  else if (name === 'vote')          renderVotePage();
+  else if (name === 'rankings')      renderRankingsPage();
+  else if (name === 'summary')       renderSummaryPage();
+  else if (name === 'teams')         renderTeamsPage();
+  else if (name === 'proposals')     renderProposalsPage();
+  else if (name === 'commissioner')  renderCommissionerPage();
+
+  // Scroll to top
+  window.scrollTo(0, 0);
 }
 
-// ── SHARED UI HELPERS ─────────────────────────────────────────────────────────
+// ── SHARED UI ─────────────────────────────────────────────────────────────────
 
 function showErr(elId, title, msg) {
   const el = document.getElementById(elId);
@@ -222,3 +223,14 @@ function showToast(msg, isErr = false) {
 }
 function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
 function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)   return 'just now';
+  if (m < 60)  return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)  return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}

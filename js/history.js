@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-//  HISTORY PAGE
+//  HISTORY — renders chart section inside Rankings
 // ═══════════════════════════════════════════════
 
 let historyChart = null;
@@ -15,20 +15,21 @@ const CHART_DASHES = [
   [8,3], [4,2],
 ];
 
-async function renderHistoryPage() {
+async function renderHistorySection() {
   if (!leagueData) return;
 
   const history = await getRankingHistory(currentLeague.id);
 
   if (!history.length) {
     show('history-empty');
+    document.getElementById('history-legend').innerHTML = '';
     return;
   }
   hide('history-empty');
 
-  const weeks  = [...new Set(history.map(h => h.week))].sort((a, b) => a - b);
-  const teams  = [...new Set(history.map(h => h.team_name))];
-  const n      = leagueData.rosters.length;
+  const weeks = [...new Set(history.map(h => h.week))].sort((a, b) => a - b);
+  const teams = [...new Set(history.map(h => h.team_name))];
+  const n     = leagueData.rosters.length;
 
   const datasets = teams.map((team, i) => ({
     label: team,
@@ -36,20 +37,18 @@ async function renderHistoryPage() {
       const h = history.find(x => x.team_name === team && x.week === w);
       return h ? h.rank : null;
     }),
-    borderColor:       CHART_COLORS[i % CHART_COLORS.length],
+    borderColor:          CHART_COLORS[i % CHART_COLORS.length],
     pointBackgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-    borderDash:        CHART_DASHES[i % CHART_DASHES.length],
-    tension:           0.35,
-    pointRadius:       4,
-    pointHoverRadius:  8,
-    borderWidth:       2,
-    fill:              false,
-    spanGaps:          true,
+    borderDash:           CHART_DASHES[i % CHART_DASHES.length],
+    tension:              0.35,
+    pointRadius:          4,
+    pointHoverRadius:     8,
+    borderWidth:          2,
+    fill:                 false,
+    spanGaps:             true,
   }));
 
-  // Build legend
-  const legend = document.getElementById('history-legend');
-  legend.innerHTML = teams.map((team, i) => `
+  document.getElementById('history-legend').innerHTML = teams.map((team, i) => `
     <div class="legend-item">
       <div class="legend-swatch" style="background:${CHART_COLORS[i % CHART_COLORS.length]}"></div>
       <span>${team}</span>
@@ -74,10 +73,7 @@ async function renderHistoryPage() {
             callback: v => `#${v}`,
           },
           grid: { color: 'rgba(30,39,72,.8)' },
-          title: {
-            display: true, text: 'Power Rank',
-            color: '#4a5478', font: { family: 'Barlow Condensed', size: 12 },
-          },
+          title: { display: true, text: 'Power Rank', color: '#4a5478', font: { family: 'Barlow Condensed', size: 12 } },
         },
         x: {
           ticks: {
