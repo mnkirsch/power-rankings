@@ -5,8 +5,8 @@
 async function renderHomePage() {
   if (!leagueData) return;
   const { sr, um } = leagueData;
-  document.getElementById('home-week-chip').textContent = `Week ${currentWeek}`;
-
+  document.getElementById('home-week-chip').textContent = weekLabel(currentWeek);
+  
   // Hide all cards initially
   ['home-matchup-card','home-ranking-card','home-summary-card',
    'home-votes-card','home-proposals-card'].forEach(id => hide(id));
