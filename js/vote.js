@@ -5,8 +5,8 @@
 async function renderVotePage() {
   if (!leagueData) return;
   const { sr, um } = leagueData;
-  document.getElementById('vote-week-chip').textContent = `Week ${currentWeek}`;
-
+  document.getElementById('vote-week-chip').textContent = weekLabel(currentWeek);
+  
   // My roster
   const myRoster = sr.find(r => r.owner_id === currentUser.user_id);
   if (myRoster) {
