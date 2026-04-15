@@ -15,18 +15,16 @@
 </head>
 <body>
 
-  <!-- LOADING OVERLAY -->
   <div id="loading" class="loading-overlay">
     <div class="loading-inner">
-      <div class="loading-logo">FANTASY HQ</div>
+      <div class="loading-logo">FANTASY<span>HQ</span></div>
       <div class="spinner"></div>
     </div>
   </div>
 
-  <!-- APP SHELL -->
   <div id="app" class="app" style="display:none">
 
-    <!-- ── LOGIN SCREEN ── -->
+    <!-- LOGIN SCREEN -->
     <div id="screen-login" class="screen active">
       <div class="login-page">
         <div class="login-hero">
@@ -41,7 +39,6 @@
                    oninput="onUsernameInput()" onkeydown="if(event.key==='Enter')doLogin()"/>
             <div class="field-hint">Found in the Sleeper app under your profile</div>
           </div>
-
           <div id="comm-pw-wrap" class="comm-pw-wrap" style="display:none">
             <div class="field">
               <label class="field-label">Commissioner Password</label>
@@ -49,15 +46,11 @@
                      placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
             </div>
           </div>
-
           <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
             <span id="login-btn-text">Sign In</span>
           </button>
-
           <div class="err-box" id="login-err" style="display:none"></div>
         </div>
-
-        <!-- League picker shown if in both leagues -->
         <div id="league-picker" style="display:none">
           <p class="picker-label">You're in multiple leagues — pick one:</p>
           <div id="league-opts"></div>
@@ -65,29 +58,50 @@
       </div>
     </div>
 
-    <!-- ── MAIN SCREEN ── -->
+    <!-- MAIN SCREEN -->
     <div id="screen-main" class="screen">
 
-      <!-- Top bar -->
+      <!-- Topbar with inline nav -->
       <div class="topbar">
         <div class="topbar-left">
           <div class="topbar-logo">FANTASY<span>HQ</span></div>
-          <div class="league-chip" id="league-chip"></div>
         </div>
+        <nav class="topnav" id="topnav">
+          <button class="tnav-item active" onclick="switchPage('home',this)">Home</button>
+          <button class="tnav-item" onclick="switchPage('vote',this)">Vote</button>
+          <button class="tnav-item" onclick="switchPage('rankings',this)">Rankings</button>
+          <button class="tnav-item" onclick="switchPage('summary',this)">Summary</button>
+          <button class="tnav-item" onclick="switchPage('teams',this)">Teams</button>
+          <button class="tnav-item" onclick="switchPage('proposals',this)">Proposals</button>
+          <button class="tnav-item comm-only" id="comm-nav-btn" onclick="switchPage('commissioner',this)" style="display:none">⚙ Comm</button>
+        </nav>
         <div class="topbar-right">
+          <div class="league-chip" id="league-chip"></div>
           <div class="user-chip" id="user-chip" onclick="logout()">
             <div class="user-chip-av" id="user-chip-av">👤</div>
             <span id="user-chip-name"></span>
-            <span class="comm-chip" id="comm-chip" style="display:none">⚙</span>
           </div>
         </div>
       </div>
 
       <!-- Page content -->
-      <div class="page-content" id="page-content">
+      <div class="page-content">
 
-        <!-- VOTE PAGE -->
-        <div id="page-vote" class="page active">
+        <!-- HOME -->
+        <div id="page-home" class="page active">
+          <div class="page-header">
+            <h1 class="page-title">Home</h1>
+            <div class="week-chip" id="home-week-chip">Week —</div>
+          </div>
+          <div id="home-matchup-card"   class="home-card" style="display:none"></div>
+          <div id="home-ranking-card"   class="home-card" style="display:none"></div>
+          <div id="home-summary-card"   class="home-card" style="display:none"></div>
+          <div id="home-votes-card"     class="home-card" style="display:none"></div>
+          <div id="home-proposals-card" class="home-card" style="display:none"></div>
+        </div>
+
+        <!-- VOTE -->
+        <div id="page-vote" class="page" style="display:none">
           <div class="page-header">
             <h1 class="page-title">Power Rankings</h1>
             <div class="week-chip" id="vote-week-chip">Week —</div>
@@ -97,24 +111,22 @@
           </div>
           <div class="voting-as-bar">
             <span class="voting-as-label">Voting as</span>
-            <div class="voting-as-team" id="voting-as-team">
+            <div class="voting-as-team">
               <div class="sm-av" id="vote-av">🏈</div>
               <span id="vote-team-name"></span>
             </div>
           </div>
           <div id="vote-list" class="vote-list"></div>
           <div class="vote-footer">
-            <button class="btn btn-primary btn-full" id="sub-btn" onclick="submitVote()" disabled>
-              Submit Rankings
-            </button>
-            <div class="vote-status" id="vstatus">Select your team to begin</div>
+            <button class="btn btn-primary btn-full" id="sub-btn" onclick="submitVote()" disabled>Submit Rankings</button>
+            <div class="vote-status" id="vstatus">Loading…</div>
           </div>
         </div>
 
-        <!-- RESULTS PAGE -->
-        <div id="page-results" class="page" style="display:none">
+        <!-- RANKINGS (results + history) -->
+        <div id="page-rankings" class="page" style="display:none">
           <div class="page-header">
-            <h1 class="page-title">Results</h1>
+            <h1 class="page-title">Rankings</h1>
             <div class="week-chip" id="res-week-chip">Week —</div>
           </div>
           <div id="results-list" class="results-list"></div>
@@ -122,60 +134,45 @@
             <div class="section-label">⚙ Individual Ballots</div>
             <div class="ballot-grid" id="ballot-grid"></div>
           </div>
-        </div>
-
-        <!-- HISTORY PAGE -->
-        <div id="page-history" class="page" style="display:none">
-          <div class="page-header">
-            <h1 class="page-title">History</h1>
-          </div>
+          <div class="section-label" style="margin-top:28px">Week-over-Week</div>
           <div class="chart-card">
             <canvas id="history-chart" role="img" aria-label="Week over week power rankings line chart"></canvas>
           </div>
           <div id="history-legend" class="chart-legend"></div>
           <div id="history-empty" class="empty-state" style="display:none">
-            No history yet — rankings will appear here after the first week of voting.
+            History will appear here after the first week of voting.
           </div>
         </div>
 
-        <!-- SUMMARY PAGE -->
+        <!-- SUMMARY -->
         <div id="page-summary" class="page" style="display:none">
           <div class="page-header">
-            <h1 class="page-title">Weekly Summary</h1>
+            <h1 class="page-title">Summary</h1>
             <div class="week-chip" id="sum-week-chip">Week —</div>
           </div>
-          <div class="summary-card" id="summary-card">
-            <div id="summary-empty" class="empty-state">
-              No summary yet this week — check back after Tuesday.
-            </div>
+          <div class="summary-card">
+            <div id="summary-empty" class="empty-state">No summary yet — check back after Tuesday.</div>
             <div id="summary-content" style="display:none">
               <div class="summary-meta" id="summary-meta"></div>
               <div class="summary-body" id="summary-body"></div>
             </div>
           </div>
-          <!-- Commissioner gen panel -->
           <div class="gen-panel" id="gen-panel" style="display:none">
             <div class="gen-panel-title">Generate Summary</div>
-            <p class="gen-panel-desc">
-              Writes a weekly recap using standings, matchup scores, and ranking movement.
-              Saved for everyone once generated.
-            </p>
+            <p class="gen-panel-desc">Writes a weekly recap using standings, matchup scores, and ranking movement. Saved for everyone once generated.</p>
             <div class="field">
               <label class="field-label">Anthropic API Key</label>
               <input type="password" id="anthro-key" class="field-input" placeholder="sk-ant-…"/>
               <div class="field-hint">console.anthropic.com · used in browser only, never stored</div>
             </div>
             <div id="gen-standings-preview" class="gen-preview"></div>
-            <button class="btn btn-accent btn-full" id="gen-btn" onclick="generateSummary()">
-              Generate →
-            </button>
+            <button class="btn btn-accent btn-full" id="gen-btn" onclick="generateSummary()">Generate →</button>
             <div class="err-box" id="gen-err" style="display:none"></div>
           </div>
         </div>
 
-        <!-- TEAMS PAGE -->
+        <!-- TEAMS -->
         <div id="page-teams" class="page" style="display:none">
-          <!-- Team list -->
           <div id="teams-list-view">
             <div class="page-header">
               <h1 class="page-title">Teams</h1>
@@ -183,7 +180,6 @@
             </div>
             <div id="teams-list" class="teams-list"></div>
           </div>
-          <!-- Team detail -->
           <div id="team-detail-view" style="display:none">
             <button class="back-btn" onclick="showTeamsList()">← Teams</button>
             <div id="team-detail-header" class="team-detail-header"></div>
@@ -193,39 +189,64 @@
           </div>
         </div>
 
+        <!-- PROPOSALS -->
+        <div id="page-proposals" class="page" style="display:none">
+          <!-- List -->
+          <div id="proposals-list-view">
+            <div class="page-header">
+              <h1 class="page-title">Proposals</h1>
+              <button class="btn btn-accent" onclick="showNewProposalForm()" style="padding:8px 14px;font-size:14px">+ New</button>
+            </div>
+            <div id="proposals-list"></div>
+          </div>
+          <!-- New proposal form -->
+          <div id="new-proposal-view" style="display:none">
+            <button class="back-btn" onclick="showProposalsList()">← Proposals</button>
+            <div class="proposal-form-card">
+              <div class="proposal-form-title">New Proposal</div>
+              <div class="field">
+                <label class="field-label">Title</label>
+                <input id="prop-title" class="field-input" placeholder="e.g. Remove kicker slot"/>
+              </div>
+              <div class="field">
+                <label class="field-label">Details</label>
+                <textarea id="prop-body" class="field-input field-textarea" placeholder="Explain your proposal…"></textarea>
+              </div>
+              <label class="anon-check">
+                <input type="checkbox" id="prop-anon"/>
+                <span>Post anonymously</span>
+              </label>
+              <button class="btn btn-primary btn-full" onclick="submitProposal()">Submit Proposal</button>
+              <div class="err-box" id="prop-err" style="display:none"></div>
+            </div>
+          </div>
+          <!-- Thread view -->
+          <div id="proposal-detail-view" style="display:none">
+            <button class="back-btn" onclick="showProposalsList()">← Proposals</button>
+            <div id="proposal-detail-content"></div>
+            <div id="proposal-vote-banner" style="display:none"></div>
+            <div class="reply-form-wrap" id="reply-form-wrap">
+              <textarea id="reply-body" class="field-input field-textarea" placeholder="Add a reply…" rows="2"></textarea>
+              <button class="btn btn-accent" onclick="submitReply()" style="align-self:flex-end;padding:8px 16px;font-size:14px">Reply</button>
+            </div>
+            <div id="replies-list"></div>
+          </div>
+        </div>
+
+        <!-- COMMISSIONER -->
+        <div id="page-commissioner" class="page" style="display:none">
+          <div class="page-header">
+            <h1 class="page-title">Commissioner</h1>
+          </div>
+          <div id="comm-content"></div>
+        </div>
+
       </div><!-- /page-content -->
-
-      <!-- BOTTOM NAV -->
-      <nav class="bottom-nav" id="bottom-nav">
-        <button class="nav-item active" onclick="switchPage('vote', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          <span>Vote</span>
-        </button>
-        <button class="nav-item" onclick="switchPage('results', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span>Results</span>
-        </button>
-        <button class="nav-item" onclick="switchPage('history', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span>History</span>
-        </button>
-        <button class="nav-item" onclick="switchPage('summary', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          <span>Summary</span>
-        </button>
-        <button class="nav-item" onclick="switchPage('teams', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          <span>Teams</span>
-        </button>
-      </nav>
-
     </div><!-- /screen-main -->
-
   </div><!-- /app -->
 
   <div class="toast" id="toast"></div>
 
-  <!-- JS modules in dependency order -->
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
@@ -234,6 +255,8 @@
   <script src="js/history.js"></script>
   <script src="js/summary.js"></script>
   <script src="js/teams.js"></script>
-
+  <script src="js/home.js"></script>
+  <script src="js/proposals.js"></script>
+  <script src="js/commissioner.js"></script>
 </body>
 </html>
