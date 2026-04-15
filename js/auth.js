@@ -11,7 +11,7 @@ let isCommissioner = false;
 // ── INIT ─────────────────────────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', async () => {
-  if (CONFIG.supabaseUrl === 'https://edrmasdqceghodetpfhn.supabase.co') {
+  if (CONFIG.supabaseUrl === 'YOUR_SUPABASE_URL') {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     showLoginScreen();
