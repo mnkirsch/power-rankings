@@ -650,3 +650,36 @@ body::after {
 @media (min-width: 768px) {
   .page-content { padding-left: 24px; padding-right: 24px; }
 }
+
+/* ── COMMISSIONER SEASON CONTROLS ── */
+.comm-controls {
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 4px;
+}
+.comm-controls-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px;
+  font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--green); margin-bottom: 12px;
+}
+.comm-controls-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.comm-controls-info { flex: 1; min-width: 0; }
+.comm-controls-label {
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.comm-controls-value {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 20px;
+  font-weight: 800; color: var(--gold); line-height: 1; margin-top: 2px;
+}
+.comm-controls-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.comm-controls-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.btn-reset-votes {
+  padding: 6px 12px; border-radius: 6px;
+  background: rgba(255,77,106,.08); border: 1px solid rgba(255,77,106,.25);
+  color: var(--red); font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: .5px;
+  cursor: pointer; white-space: nowrap; transition: background .2s;
+}
+.btn-reset-votes:hover { background: rgba(255,77,106,.16); }
