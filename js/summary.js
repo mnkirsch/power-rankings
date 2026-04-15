@@ -4,8 +4,8 @@
 
 async function renderSummaryPage() {
   if (!leagueData) return;
-  document.getElementById('sum-week-chip').textContent = `Week ${currentWeek}`;
-
+  document.getElementById('sum-week-chip').textContent = weekLabel(currentWeek);
+  
   const summaryRow = await getSummary(currentLeague.id, currentWeek);
 
   if (summaryRow?.summary_text) {
