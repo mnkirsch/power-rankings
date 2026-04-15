@@ -5,8 +5,8 @@
 async function renderRankingsPage() {
   if (!leagueData) return;
   const { sr, um } = leagueData;
-  document.getElementById('res-week-chip').textContent = `Week ${currentWeek}`;
-
+  document.getElementById('res-week-chip').textContent = weekLabel(currentWeek);
+  
   const list = document.getElementById('results-list');
   list.innerHTML = '<div class="spinner" style="margin:30px auto"></div>';
   hide('ballot-section');
