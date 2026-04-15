@@ -63,8 +63,17 @@
 
       <!-- Topbar with inline nav -->
       <div class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-logo">FANTASY<span>HQ</span></div>
+        <div class="topbar-row1">
+          <div class="topbar-left">
+            <div class="topbar-logo">FANTASY<span>HQ</span></div>
+          </div>
+          <div class="topbar-right">
+            <div class="league-chip" id="league-chip"></div>
+            <div class="user-chip" id="user-chip" onclick="logout()">
+              <div class="user-chip-av" id="user-chip-av">👤</div>
+              <span id="user-chip-name"></span>
+            </div>
+          </div>
         </div>
         <nav class="topnav" id="topnav">
           <button class="tnav-item active" onclick="switchPage('home',this)">Home</button>
@@ -75,13 +84,6 @@
           <button class="tnav-item" onclick="switchPage('proposals',this)">Proposals</button>
           <button class="tnav-item comm-only" id="comm-nav-btn" onclick="switchPage('commissioner',this)" style="display:none">⚙ Comm</button>
         </nav>
-        <div class="topbar-right">
-          <div class="league-chip" id="league-chip"></div>
-          <div class="user-chip" id="user-chip" onclick="logout()">
-            <div class="user-chip-av" id="user-chip-av">👤</div>
-            <span id="user-chip-name"></span>
-          </div>
-        </div>
       </div>
 
       <!-- Page content -->
