@@ -125,6 +125,19 @@ async function loadLeague(league) {
     const sr = sortedRosters(rosters);
     currentLeague = league;
     leagueData = { rosters, users, um, sr };
+
+    // Load active week from Supabase (overrides Sleeper's API)
+    try {
+      const settings = await getLeagueSettings(league.id);
+      if (settings?.active_week !== undefined) {
+        currentWeek = settings.active_week;
+      } else {
+        // No settings row yet — create one defaulting to week 0
+        await saveLeagueSettings(league.id, 0);
+        currentWeek = 0;
+      }
+    } catch { currentWeek = 0; }
+
     enterApp();
   } catch(e) {
     showErr('login-err', 'Load Error', e.message);

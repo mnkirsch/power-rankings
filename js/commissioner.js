@@ -21,12 +21,12 @@ async function renderCommissionerPage() {
             .then(r => r.data || []),
           getLeagueSettings(id),
         ]);
-        leagueBlocks.push({ info, proposals, settings });
+        leagueBlocks.push({ id, info, proposals, settings });
       } catch {}
     }
 
     wrap.innerHTML = '';
-    leagueBlocks.forEach(({ info, proposals, settings }) => {
+    leagueBlocks.forEach(({ id: leagueId, info, proposals, settings }) => {
       const activeWeek = settings?.active_week ?? 0;
       const block = document.createElement('div');
       block.className = 'comm-league-block';
@@ -40,11 +40,11 @@ async function renderCommissionerPage() {
             Fetches all matchup data back to 2018 from Sleeper and stores it for the History page.
             Takes 2–5 minutes. Only needs to run once — or again at season end to add the latest season.
           </p>
-          <button class="btn-put-vote" id="import-btn-${info.league_id}"
-            onclick="runHistoricalImport('${info.league_id}', '${info.league_id}')">
+          <button class="btn-put-vote" id="import-btn-${leagueId}"
+            onclick="runHistoricalImport('${leagueId}', '${leagueId}')">
             Import History
           </button>
-          <div id="import-log-${info.league_id}" class="import-log" style="display:none"></div>
+          <div id="import-log-${leagueId}" class="import-log" style="display:none"></div>
         </div>
         <div class="comm-controls">
           <div class="comm-controls-title">Season Controls</div>
@@ -54,9 +54,9 @@ async function renderCommissionerPage() {
               <div class="comm-controls-value">${weekLabel(activeWeek)}</div>
             </div>
             <div class="comm-controls-actions">
-              <input type="number" class="deadline-input" id="week-input-${info.league_id}"
+              <input type="number" class="deadline-input" id="week-input-${leagueId}"
                 min="0" max="18" value="${activeWeek}" style="width:70px;text-align:center"/>
-              <button class="btn-put-vote" onclick="setActiveWeek('${info.league_id}')">Set Week</button>
+              <button class="btn-put-vote" onclick="setActiveWeek('${leagueId}')">Set Week</button>
             </div>
           </div>
           <div class="comm-controls-row" style="margin-top:8px">
@@ -64,7 +64,7 @@ async function renderCommissionerPage() {
               <div class="comm-controls-label">Reset Votes</div>
               <div class="comm-controls-meta">Clears all power ranking votes for the active week</div>
             </div>
-            <button class="btn-reset-votes" onclick="resetWeekVotes('${info.league_id}', ${activeWeek})">
+            <button class="btn-reset-votes" onclick="resetWeekVotes('${leagueId}', ${activeWeek})">
               Reset ${weekLabel(activeWeek)}
             </button>
           </div>
