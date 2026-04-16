@@ -174,3 +174,8 @@ async function saveLeagueSettings(leagueId, activeWeek) {
   }, { onConflict: 'league_id' });
   if (error) throw error;
 }
+
+function weekLabel(week) {
+  return week === 0 ? 'Preseason' : `Week ${week}`;
+}
+
