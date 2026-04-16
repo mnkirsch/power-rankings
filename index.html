@@ -82,6 +82,7 @@
           <button class="tnav-item" onclick="switchPage('summary',this)">Summary</button>
           <button class="tnav-item" onclick="switchPage('teams',this)">Teams</button>
           <button class="tnav-item" onclick="switchPage('proposals',this)">Proposals</button>
+          <button class="tnav-item" onclick="switchPage('leaguehistory',this)">History</button>
           <button class="tnav-item comm-only" id="comm-nav-btn" onclick="switchPage('commissioner',this)" style="display:none">⚙ Comm</button>
         </nav>
       </div>
@@ -235,6 +236,20 @@
           </div>
         </div>
 
+        <!-- LEAGUE HISTORY -->
+        <div id="page-leaguehistory" class="page" style="display:none">
+          <div class="page-header">
+            <h1 class="page-title">League History</h1>
+          </div>
+          <div class="lh-tabs" id="lh-tabs" style="display:none">
+            <button class="lh-tab active" data-tab="efficiency" onclick="switchHistoryTab('efficiency')">Efficiency</button>
+            <button class="lh-tab" data-tab="seasons"    onclick="switchHistoryTab('seasons')">Seasons</button>
+            <button class="lh-tab" data-tab="records"    onclick="switchHistoryTab('records')">Records</button>
+            <button class="lh-tab" data-tab="h2h"        onclick="switchHistoryTab('h2h')">H2H</button>
+          </div>
+          <div id="lh-content"></div>
+        </div>
+
         <!-- COMMISSIONER -->
         <div id="page-commissioner" class="page" style="display:none">
           <div class="page-header">
@@ -259,6 +274,8 @@
   <script src="js/teams.js"></script>
   <script src="js/home.js"></script>
   <script src="js/proposals.js"></script>
+  <script src="js/history-import.js"></script>
+  <script src="js/league-history.js"></script>
   <script src="js/commissioner.js"></script>
 </body>
 </html>
