@@ -33,7 +33,19 @@ async function renderCommissionerPage() {
       block.innerHTML = `
         <div class="comm-league-name">${info.name}</div>
 
-        <!-- Season Controls -->
+        <!-- Import History -->
+        <div class="comm-controls" style="margin-bottom:16px">
+          <div class="comm-controls-title">Historical Data Import</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+            Fetches all matchup data back to 2018 from Sleeper and stores it for the History page.
+            Takes 2–5 minutes. Only needs to run once — or again at season end to add the latest season.
+          </p>
+          <button class="btn-put-vote" id="import-btn-${info.league_id}"
+            onclick="runHistoricalImport('${info.league_id}', '${info.league_id}')">
+            Import History
+          </button>
+          <div id="import-log-${info.league_id}" class="import-log" style="display:none"></div>
+        </div>
         <div class="comm-controls">
           <div class="comm-controls-title">Season Controls</div>
           <div class="comm-controls-row">
