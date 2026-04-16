@@ -1,8 +1,28 @@
 // ═══════════════════════════════════════════════
 //  LEAGUE HISTORY PAGE
+//  All aggregation keyed on owner_user_id.
+//  Display names resolved from current league data.
 // ═══════════════════════════════════════════════
 
-let historyTab = 'efficiency'; // current sub-tab
+let historyTab = 'efficiency';
+
+// Build a map of user_id → current display name from leagueData
+function currentNameMap() {
+  const map = {};
+  if (!leagueData?.users) return map;
+  leagueData.users.forEach(u => {
+    map[u.user_id] = u.display_name || u.username || u.user_id;
+  });
+  return map;
+}
+
+function displayName(userId, nameMap) {
+  if (!userId) return 'League-Run Team';
+  if (nameMap[userId]) return nameMap[userId];
+  // Shorten raw IDs to something readable
+  if (/^\d{10,}$/.test(userId)) return `Unknown (…${userId.slice(-4)})`;
+  return userId;
+}
 
 async function renderLeagueHistoryPage() {
   if (!leagueData) return;
@@ -10,7 +30,6 @@ async function renderLeagueHistoryPage() {
   const wrap = document.getElementById('lh-content');
   wrap.innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
 
-  // Check if data exists
   const { data: seasons } = await getSB().from('historical_seasons')
     .select('*').eq('league_id', currentLeague.id).order('season');
 
@@ -19,7 +38,6 @@ async function renderLeagueHistoryPage() {
     return;
   }
 
-  // Render sub-tabs
   document.getElementById('lh-tabs').style.display = 'flex';
   switchHistoryTab(historyTab);
 }
@@ -33,10 +51,10 @@ function switchHistoryTab(tab) {
   const wrap = document.getElementById('lh-content');
   wrap.innerHTML = '<div class="spinner" style="margin:30px auto"></div>';
 
-  if (tab === 'efficiency') renderEfficiencyTab(wrap);
-  else if (tab === 'seasons')   renderSeasonsTab(wrap);
-  else if (tab === 'records')   renderRecordsTab(wrap);
-  else if (tab === 'h2h')       renderH2HTab(wrap);
+  if      (tab === 'efficiency') renderEfficiencyTab(wrap);
+  else if (tab === 'seasons')    renderSeasonsTab(wrap);
+  else if (tab === 'records')    renderRecordsTab(wrap);
+  else if (tab === 'h2h')        renderH2HTab(wrap);
 }
 
 // ── EFFICIENCY TAB ───────────────────────────────────────────────────────────
@@ -50,37 +68,32 @@ async function renderEfficiencyTab(wrap) {
     wrap.innerHTML = '<div class="empty-state">No efficiency data yet.</div>'; return;
   }
 
-  // All-time average efficiency per manager
-  const managerStats = {};
+  const nm = currentNameMap();
+
+  // Aggregate by owner_user_id
+  const managers = {};
   rows.forEach(r => {
-    if (!managerStats[r.owner_display_name]) {
-      managerStats[r.owner_display_name] = {
-        name: r.owner_display_name, team: r.team_name,
-        totalEff: 0, totalLeft: 0, count: 0, weeks: [],
-      };
-    }
-    const m = managerStats[r.owner_display_name];
-    m.totalEff   += r.efficiency;
-    m.totalLeft  += r.points_left;
-    m.count++;
-    m.weeks.push(r);
+    const uid = r.owner_user_id || r.owner_display_name;
+    if (!managers[uid]) managers[uid] = { uid, totalEff: 0, totalLeft: 0, count: 0 };
+    managers[uid].totalEff  += parseFloat(r.efficiency || 0);
+    managers[uid].totalLeft += parseFloat(r.points_left || 0);
+    managers[uid].count++;
   });
 
-  const managers = Object.values(managerStats).map(m => ({
+  const sorted = Object.values(managers).map(m => ({
     ...m,
-    avgEff:       m.totalEff / m.count,
-    avgLeft:      m.totalLeft / m.count,
-    totalLeft:    m.totalLeft,
+    name:     displayName(m.uid, nm),
+    avgEff:   m.totalEff / m.count,
+    avgLeft:  m.totalLeft / m.count,
   })).sort((a, b) => a.avgEff - b.avgEff); // worst first
 
-  // Worst single-week sits ever
+  // Worst sits — keyed by user_id for name lookup
   const worstSits = rows
     .filter(r => r.worst_sit?.points_diff > 0)
     .sort((a, b) => b.worst_sit.points_diff - a.worst_sit.points_diff)
     .slice(0, 10);
 
-  // Best efficiency weeks ever
-  const bestWeeks = [...rows].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
+  const bestWeeks  = [...rows].sort((a, b) => b.efficiency - a.efficiency).slice(0, 5);
   const worstWeeks = [...rows].sort((a, b) => a.efficiency - b.efficiency).slice(0, 5);
 
   wrap.innerHTML = `
@@ -89,7 +102,7 @@ async function renderEfficiencyTab(wrap) {
       <div class="lh-table-head">
         <span>Manager</span><span>Avg Eff%</span><span>Avg Left</span><span>Total Left</span>
       </div>
-      ${managers.map((m, i) => {
+      ${sorted.map((m, i) => {
         const color = m.avgEff >= 90 ? 'var(--green)' : m.avgEff >= 80 ? 'var(--gold)' : 'var(--red)';
         return `<div class="lh-table-row">
           <span class="lh-name">${i === 0 ? '😬 ' : ''}${m.name}</span>
@@ -102,27 +115,30 @@ async function renderEfficiencyTab(wrap) {
 
     <div class="lh-section-title" style="margin-top:24px">💀 Hall of Shame — Worst Sits Ever</div>
     <div class="lh-cards">
-      ${worstSits.map(r => `
+      ${worstSits.map(r => {
+        const name = displayName(r.owner_user_id || r.owner_display_name, nm);
+        return `
         <div class="lh-shame-card">
           <div class="lh-shame-header">
-            <span class="lh-shame-name">${r.owner_display_name}</span>
+            <span class="lh-shame-name">${name}</span>
             <span class="lh-shame-meta">${r.season} · Wk ${r.week}</span>
           </div>
           <div class="lh-shame-body">
             <div class="lh-shame-benched">
-              <div class="lh-shame-pts" style="color:var(--green)">${r.worst_sit.benched_pts.toFixed(1)}</div>
+              <div class="lh-shame-pts" style="color:var(--green)">${parseFloat(r.worst_sit.benched_pts).toFixed(1)}</div>
               <div class="lh-shame-player">${r.worst_sit.benched_name}</div>
               <div class="lh-shame-label">Benched</div>
             </div>
             <div class="lh-shame-vs">vs</div>
             <div class="lh-shame-started">
-              <div class="lh-shame-pts" style="color:var(--red)">${r.worst_sit.started_pts.toFixed(1)}</div>
+              <div class="lh-shame-pts" style="color:var(--red)">${parseFloat(r.worst_sit.started_pts).toFixed(1)}</div>
               <div class="lh-shame-player">${r.worst_sit.started_name}</div>
               <div class="lh-shame-label">Started</div>
             </div>
-            <div class="lh-shame-diff">+${r.worst_sit.points_diff.toFixed(1)} left on bench</div>
+            <div class="lh-shame-diff">+${parseFloat(r.worst_sit.points_diff).toFixed(1)} left on bench</div>
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
 
     <div class="lh-two-col" style="margin-top:24px">
@@ -131,10 +147,10 @@ async function renderEfficiencyTab(wrap) {
         ${bestWeeks.map(r => `
           <div class="lh-stat-row">
             <div>
-              <div class="lh-stat-name">${r.owner_display_name}</div>
+              <div class="lh-stat-name">${displayName(r.owner_user_id || r.owner_display_name, nm)}</div>
               <div class="lh-stat-meta">${r.season} · Wk ${r.week}</div>
             </div>
-            <div class="lh-stat-val" style="color:var(--green)">${r.efficiency.toFixed(1)}%</div>
+            <div class="lh-stat-val" style="color:var(--green)">${parseFloat(r.efficiency).toFixed(1)}%</div>
           </div>`).join('')}
       </div>
       <div>
@@ -142,10 +158,10 @@ async function renderEfficiencyTab(wrap) {
         ${worstWeeks.map(r => `
           <div class="lh-stat-row">
             <div>
-              <div class="lh-stat-name">${r.owner_display_name}</div>
+              <div class="lh-stat-name">${displayName(r.owner_user_id || r.owner_display_name, nm)}</div>
               <div class="lh-stat-meta">${r.season} · Wk ${r.week}</div>
             </div>
-            <div class="lh-stat-val" style="color:var(--red)">${r.efficiency.toFixed(1)}%</div>
+            <div class="lh-stat-val" style="color:var(--red)">${parseFloat(r.efficiency).toFixed(1)}%</div>
           </div>`).join('')}
       </div>
     </div>`;
@@ -154,41 +170,38 @@ async function renderEfficiencyTab(wrap) {
 // ── SEASONS TAB ──────────────────────────────────────────────────────────────
 
 async function renderSeasonsTab(wrap) {
-  const { data: matchups } = await getSB().from('historical_matchups')
-    .select('*').eq('league_id', currentLeague.id);
-
-  const { data: seasons } = await getSB().from('historical_seasons')
-    .select('*').eq('league_id', currentLeague.id).order('season', { ascending: false });
+  const [{ data: matchups }, { data: seasons }] = await Promise.all([
+    getSB().from('historical_matchups').select('*').eq('league_id', currentLeague.id),
+    getSB().from('historical_seasons').select('*').eq('league_id', currentLeague.id).order('season', { ascending: false }),
+  ]);
 
   if (!matchups?.length) {
     wrap.innerHTML = '<div class="empty-state">No season data yet.</div>'; return;
   }
 
-  // Build per-season standings from final week data
-  wrap.innerHTML = seasons.map(s => {
-    const seasonMatchups = matchups.filter(m => m.season === s.season);
-    if (!seasonMatchups.length) return '';
+  const nm = currentNameMap();
 
-    // Get final standings (aggregate wins/losses/points)
+  wrap.innerHTML = seasons.map(s => {
+    const sm = matchups.filter(m => m.season === s.season);
+    if (!sm.length) return '';
+
+    // Aggregate by owner_user_id
     const managerMap = {};
-    seasonMatchups.forEach(m => {
-      if (!managerMap[m.owner_display_name]) {
-        managerMap[m.owner_display_name] = {
-          name: m.owner_display_name, team: m.team_name,
-          wins: 0, losses: 0, pts: 0,
-        };
-      }
-      const mg = managerMap[m.owner_display_name];
+    sm.forEach(m => {
+      const uid = m.owner_user_id || m.owner_display_name;
+      if (!managerMap[uid]) managerMap[uid] = { uid, wins: 0, losses: 0, pts: 0 };
+      const mg = managerMap[uid];
       if (m.won === true)  mg.wins++;
       if (m.won === false) mg.losses++;
       mg.pts += parseFloat(m.points || 0);
     });
 
     const standings = Object.values(managerMap)
+      .map(m => ({ ...m, name: displayName(m.uid, nm) }))
       .sort((a, b) => b.wins - a.wins || b.pts - a.pts);
 
-    // High score week
-    const highScore = [...seasonMatchups].sort((a, b) => b.points - a.points)[0];
+    const highScore = [...sm].sort((a, b) => b.points - a.points)[0];
+    const highName  = highScore ? displayName(highScore.owner_user_id || highScore.owner_display_name, nm) : '';
 
     return `
       <div class="lh-season-block">
@@ -206,7 +219,7 @@ async function renderSeasonsTab(wrap) {
               <span class="lh-muted">${m.pts.toFixed(1)}</span>
             </div>`).join('')}
         </div>
-        ${highScore ? `<div class="lh-season-stat">⚡ High score: ${highScore.owner_display_name} — ${parseFloat(highScore.points).toFixed(1)} pts (Wk ${highScore.week})</div>` : ''}
+        ${highScore ? `<div class="lh-season-stat">⚡ High score: ${highName} — ${parseFloat(highScore.points).toFixed(1)} pts (Wk ${highScore.week})</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -221,20 +234,22 @@ async function renderRecordsTab(wrap) {
     wrap.innerHTML = '<div class="empty-state">No records data yet.</div>'; return;
   }
 
-  // All-time records per manager
+  const nm = currentNameMap();
+
+  // Aggregate by owner_user_id
   const managers = {};
   matchups.forEach(m => {
-    if (!managers[m.owner_display_name]) {
-      managers[m.owner_display_name] = {
-        name: m.owner_display_name, wins: 0, losses: 0,
-        pts: 0, ptsAgainst: 0, weeks: 0,
+    const uid = m.owner_user_id || m.owner_display_name;
+    if (!managers[uid]) {
+      managers[uid] = {
+        uid, wins: 0, losses: 0, pts: 0, ptsAgainst: 0, weeks: 0,
         highScore: 0, highScoreWeek: null,
         lowScore: Infinity, lowScoreWeek: null,
         biggestWin: 0, biggestWinWeek: null,
       };
     }
-    const mg = managers[m.owner_display_name];
-    const pts = parseFloat(m.points || 0);
+    const mg = managers[uid];
+    const pts    = parseFloat(m.points || 0);
     const oppPts = parseFloat(m.opponent_points || 0);
     if (m.won === true)  mg.wins++;
     if (m.won === false) mg.losses++;
@@ -247,26 +262,30 @@ async function renderRecordsTab(wrap) {
   });
 
   const sorted = Object.values(managers).map(m => ({
-    ...m, winPct: m.weeks ? ((m.wins / m.weeks) * 100).toFixed(1) : 0,
-    avgPts: m.weeks ? (m.pts / m.weeks).toFixed(1) : 0,
+    ...m,
+    name:    displayName(m.uid, nm),
+    winPct:  m.weeks ? ((m.wins / m.weeks) * 100).toFixed(1) : '0.0',
+    avgPts:  m.weeks ? (m.pts / m.weeks).toFixed(1) : '0.0',
   })).sort((a, b) => b.wins - a.wins || b.pts - a.pts);
 
   // League-wide records
-  const allMatchups = matchups.filter(m => m.points > 0);
-  const highestGame = [...allMatchups].sort((a,b) => b.points - a.points)[0];
-  const lowestGame  = [...allMatchups].sort((a,b) => a.points - b.points)[0];
+  const all          = matchups.filter(m => m.points > 0);
+  const highestGame  = [...all].sort((a, b) => b.points - a.points)[0];
+  const lowestGame   = [...all].sort((a, b) => a.points - b.points)[0];
   const biggestBlowout = matchups
     .filter(m => m.won && m.opponent_points !== null)
-    .sort((a,b) => (b.points - b.opponent_points) - (a.points - a.opponent_points))[0];
+    .sort((a, b) => (b.points - b.opponent_points) - (a.points - a.opponent_points))[0];
   const closestGame = matchups
     .filter(m => m.won && m.opponent_points !== null)
-    .sort((a,b) => Math.abs(a.points - a.opponent_points) - Math.abs(b.points - b.opponent_points))[0];
+    .sort((a, b) => Math.abs(a.points - a.opponent_points) - Math.abs(b.points - b.opponent_points))[0];
+
+  const rName = r => displayName(r.owner_user_id || r.owner_display_name, nm);
 
   wrap.innerHTML = `
     <div class="lh-section-title">All-Time Standings</div>
     <div class="lh-table">
       <div class="lh-table-head"><span>Manager</span><span>W-L</span><span>Win%</span><span>Avg Pts</span></div>
-      ${sorted.map((m, i) => `
+      ${sorted.map(m => `
         <div class="lh-table-row">
           <span class="lh-name">${m.name}</span>
           <span class="lh-muted">${m.wins}-${m.losses}</span>
@@ -277,10 +296,10 @@ async function renderRecordsTab(wrap) {
 
     <div class="lh-section-title" style="margin-top:24px">League Records</div>
     <div class="lh-records-grid">
-      ${highestGame ? `<div class="lh-record-card"><div class="lh-record-label">Highest Score Ever</div><div class="lh-record-val">${parseFloat(highestGame.points).toFixed(1)}</div><div class="lh-record-who">${highestGame.owner_display_name} · ${highestGame.season} Wk${highestGame.week}</div></div>` : ''}
-      ${lowestGame  ? `<div class="lh-record-card"><div class="lh-record-label">Lowest Score Ever</div><div class="lh-record-val" style="color:var(--red)">${parseFloat(lowestGame.points).toFixed(1)}</div><div class="lh-record-who">${lowestGame.owner_display_name} · ${lowestGame.season} Wk${lowestGame.week}</div></div>` : ''}
-      ${biggestBlowout ? `<div class="lh-record-card"><div class="lh-record-label">Biggest Blowout</div><div class="lh-record-val">${(biggestBlowout.points - biggestBlowout.opponent_points).toFixed(1)}</div><div class="lh-record-who">${biggestBlowout.owner_display_name} · ${biggestBlowout.season} Wk${biggestBlowout.week}</div></div>` : ''}
-      ${closestGame  ? `<div class="lh-record-card"><div class="lh-record-label">Closest Game</div><div class="lh-record-val" style="color:var(--teal)">${Math.abs(closestGame.points - closestGame.opponent_points).toFixed(1)}</div><div class="lh-record-who">${closestGame.owner_display_name} · ${closestGame.season} Wk${closestGame.week}</div></div>` : ''}
+      ${highestGame  ? `<div class="lh-record-card"><div class="lh-record-label">Highest Score Ever</div><div class="lh-record-val">${parseFloat(highestGame.points).toFixed(1)}</div><div class="lh-record-who">${rName(highestGame)} · ${highestGame.season} Wk${highestGame.week}</div></div>` : ''}
+      ${lowestGame   ? `<div class="lh-record-card"><div class="lh-record-label">Lowest Score Ever</div><div class="lh-record-val" style="color:var(--red)">${parseFloat(lowestGame.points).toFixed(1)}</div><div class="lh-record-who">${rName(lowestGame)} · ${lowestGame.season} Wk${lowestGame.week}</div></div>` : ''}
+      ${biggestBlowout ? `<div class="lh-record-card"><div class="lh-record-label">Biggest Blowout</div><div class="lh-record-val">${(biggestBlowout.points - biggestBlowout.opponent_points).toFixed(1)}</div><div class="lh-record-who">${rName(biggestBlowout)} · ${biggestBlowout.season} Wk${biggestBlowout.week}</div></div>` : ''}
+      ${closestGame  ? `<div class="lh-record-card"><div class="lh-record-label">Closest Game</div><div class="lh-record-val" style="color:var(--teal)">${Math.abs(closestGame.points - closestGame.opponent_points).toFixed(1)}</div><div class="lh-record-who">${rName(closestGame)} · ${closestGame.season} Wk${closestGame.week}</div></div>` : ''}
     </div>
 
     <div class="lh-section-title" style="margin-top:24px">Manager Records</div>
@@ -288,7 +307,7 @@ async function renderRecordsTab(wrap) {
       <div class="lh-manager-record">
         <div class="lh-manager-name">${m.name}</div>
         <div class="lh-manager-stats">
-          <span>High: <strong>${m.highScore.toFixed(1)}</strong> <span class="lh-muted">(${m.highScoreWeek})</span></span>
+          <span>High: <strong>${m.highScore.toFixed(1)}</strong> <span class="lh-muted">(${m.highScoreWeek || '—'})</span></span>
           <span>Low: <strong>${m.lowScore === Infinity ? '—' : m.lowScore.toFixed(1)}</strong> <span class="lh-muted">(${m.lowScoreWeek || '—'})</span></span>
           <span>Biggest W: <strong>+${m.biggestWin.toFixed(1)}</strong> <span class="lh-muted">(${m.biggestWinWeek || '—'})</span></span>
         </div>
@@ -305,10 +324,12 @@ async function renderH2HTab(wrap) {
     wrap.innerHTML = '<div class="empty-state">No H2H data yet.</div>'; return;
   }
 
-  // Get unique managers
-  const managers = [...new Set(matchups.map(m => m.owner_display_name))].sort();
+  const nm = currentNameMap();
 
-  // Build H2H matrix
+  // Unique user IDs
+  const userIds = [...new Set(matchups.map(m => m.owner_user_id || m.owner_display_name))];
+
+  // Build H2H matrix keyed on user_id pairs
   const h2h = {};
   matchups.forEach(m => {
     if (!m.opponent_roster_id || m.won === null) return;
@@ -317,7 +338,9 @@ async function renderH2HTab(wrap) {
       x.season === m.season && x.week === m.week
     );
     if (!opp) return;
-    const key = `${m.owner_display_name}|${opp.owner_display_name}`;
+    const myUid  = m.owner_user_id   || m.owner_display_name;
+    const oppUid = opp.owner_user_id || opp.owner_display_name;
+    const key = `${myUid}|${oppUid}`;
     if (!h2h[key]) h2h[key] = { wins: 0, losses: 0, ptsFor: 0, ptsAgainst: 0 };
     if (m.won) h2h[key].wins++;
     else h2h[key].losses++;
@@ -325,43 +348,52 @@ async function renderH2HTab(wrap) {
     h2h[key].ptsAgainst += parseFloat(opp.points || 0);
   });
 
-  // Current selected manager for detail view
-  const selectedManager = managers[0];
-
   wrap.innerHTML = `
     <div class="lh-section-title">Head-to-Head Records</div>
     <div class="field" style="margin-bottom:16px">
       <label class="field-label">View records for</label>
-      <select class="field-input" id="h2h-select" onchange="renderH2HDetail(this.value)" style="max-width:280px">
-        ${managers.map(m => `<option value="${m}">${m}</option>`).join('')}
+      <select class="field-input" id="h2h-select" onchange="renderH2HDetail(this.value)"
+        style="max-width:280px">
+        ${userIds.map(uid => `<option value="${uid}">${displayName(uid, nm)}</option>`).join('')}
       </select>
     </div>
     <div id="h2h-detail"></div>`;
 
-  renderH2HDetail(selectedManager, h2h, managers);
-  document.getElementById('h2h-select')._h2h = h2h;
-  document.getElementById('h2h-select')._managers = managers;
+  // Store data on element for reuse
+  const sel = document.getElementById('h2h-select');
+  sel._h2h     = h2h;
+  sel._userIds = userIds;
+  sel._nm      = nm;
+
+  renderH2HDetail(userIds[0]);
 }
 
-function renderH2HDetail(manager, h2h, managers) {
-  const sel = document.getElementById('h2h-select');
-  if (!h2h) { h2h = sel._h2h; managers = sel._managers; }
-  const detail = document.getElementById('h2h-detail');
-  if (!detail) return;
+function renderH2HDetail(selectedUid) {
+  const sel      = document.getElementById('h2h-select');
+  const h2h      = sel._h2h;
+  const userIds  = sel._userIds;
+  const nm       = sel._nm;
+  const detail   = document.getElementById('h2h-detail');
+  if (!detail || !h2h) return;
 
-  const rows = managers.filter(m => m !== manager).map(opp => {
-    const key = `${manager}|${opp}`;
-    const rec = h2h[key] || { wins: 0, losses: 0, ptsFor: 0, ptsAgainst: 0 };
-    return { opp, ...rec };
-  }).sort((a, b) => b.wins - a.wins);
+  const rows = userIds
+    .filter(uid => uid !== selectedUid)
+    .map(oppUid => {
+      const key = `${selectedUid}|${oppUid}`;
+      const rec = h2h[key] || { wins: 0, losses: 0, ptsFor: 0, ptsAgainst: 0 };
+      return { oppUid, oppName: displayName(oppUid, nm), ...rec };
+    })
+    .sort((a, b) => b.wins - a.wins);
 
   detail.innerHTML = `
     <div class="lh-table">
-      <div class="lh-table-head"><span>Opponent</span><span>W-L</span><span>Pts For</span><span>Pts Against</span></div>
+      <div class="lh-table-head">
+        <span>Opponent</span><span>W-L</span><span>Pts For</span><span>Pts Against</span>
+      </div>
       ${rows.map(r => {
         const color = r.wins > r.losses ? 'var(--green)' : r.wins < r.losses ? 'var(--red)' : 'var(--text2)';
         return `<div class="lh-table-row">
-          <span class="lh-name">${r.opp}</span>
+          <span class="lh-name">${r.oppName}</span>
           <span style="color:${color};font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700">${r.wins}-${r.losses}</span>
           <span class="lh-muted">${r.ptsFor.toFixed(1)}</span>
           <span class="lh-muted">${r.ptsAgainst.toFixed(1)}</span>
