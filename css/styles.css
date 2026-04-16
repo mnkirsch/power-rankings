@@ -683,3 +683,141 @@ body::after {
   cursor: pointer; white-space: nowrap; transition: background .2s;
 }
 .btn-reset-votes:hover { background: rgba(255,77,106,.16); }
+
+/* ══════════════════════════════════════════
+   LEAGUE HISTORY PAGE
+══════════════════════════════════════════ */
+.lh-tabs {
+  display: flex; gap: 2px; margin-bottom: 20px;
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px; width: fit-content;
+}
+.lh-tab {
+  padding: 7px 16px; border-radius: 9px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; cursor: pointer;
+  border: none; background: transparent; color: var(--text3);
+  transition: background .2s, color .2s;
+}
+.lh-tab.active { background: var(--gold); color: #05091D; }
+.lh-tab:hover:not(.active) { color: var(--text2); }
+
+.lh-section-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text2);
+  margin-bottom: 10px;
+}
+.lh-table {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 8px;
+}
+.lh-table-head {
+  display: grid; grid-template-columns: 1fr repeat(3, auto);
+  gap: 12px; padding: 8px 14px;
+  background: var(--s2); border-bottom: 1px solid var(--border);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+}
+.lh-table-row {
+  display: grid; grid-template-columns: 1fr repeat(3, auto);
+  gap: 12px; padding: 9px 14px; align-items: center;
+  border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.lh-table-row:last-child { border-bottom: none; }
+.lh-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-muted { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--text2); white-space: nowrap; }
+
+.lh-cards { display: flex; flex-direction: column; gap: 8px; }
+.lh-shame-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.lh-shame-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.lh-shame-name { font-weight: 600; font-size: 14px; }
+.lh-shame-meta { font-size: 11px; color: var(--text2); }
+.lh-shame-body {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.lh-shame-benched, .lh-shame-started { text-align: center; flex: 1; min-width: 80px; }
+.lh-shame-pts {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px; font-weight: 800; line-height: 1;
+}
+.lh-shame-player { font-size: 12px; font-weight: 500; margin-top: 2px; }
+.lh-shame-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-top: 1px; }
+.lh-shame-vs { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--text3); flex-shrink: 0; }
+.lh-shame-diff {
+  width: 100%; text-align: center; font-size: 12px;
+  color: var(--red); font-weight: 600; margin-top: 6px;
+}
+
+.lh-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 500px) { .lh-two-col { grid-template-columns: 1fr; } }
+
+.lh-stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.lh-stat-row:last-child { border-bottom: none; }
+.lh-stat-name { font-weight: 600; }
+.lh-stat-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.lh-stat-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px; font-weight: 800; white-space: nowrap;
+}
+
+.lh-season-block {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+}
+.lh-season-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.lh-season-year {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1;
+}
+.lh-season-name { font-size: 13px; color: var(--text2); }
+.lh-season-champion { font-size: 14px; font-weight: 600; color: var(--green); margin-bottom: 10px; }
+.lh-season-stat { font-size: 12px; color: var(--text2); margin-top: 8px; }
+
+.lh-records-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px; margin-bottom: 8px;
+}
+.lh-record-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; text-align: center;
+}
+.lh-record-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--text3); margin-bottom: 6px;
+}
+.lh-record-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px; font-weight: 800; color: var(--gold); line-height: 1;
+}
+.lh-record-who { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+.lh-manager-record {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+}
+.lh-manager-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.lh-manager-stats {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text2);
+}
+.lh-manager-stats strong { color: var(--text); }
+
+/* Import log */
+.import-log {
+  margin-top: 12px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; max-height: 200px; overflow-y: auto;
+  font-family: 'Barlow Condensed', sans-serif; letter-spacing: .3px;
+}
