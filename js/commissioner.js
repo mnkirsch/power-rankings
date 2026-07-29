@@ -15,10 +15,16 @@ async function renderCommissionerPage() {
         const [info, proposals, settings] = await Promise.all([
           getLeague(id),
           getSB().from('proposals')
-            .select('*, proposal_votes(count), proposal_replies(count)')
+            .select('*, proposal_votes(*), proposal_replies(count)')
             .eq('league_id', id)
             .order('created_at', { ascending: false })
-            .then(r => r.data || []),
+            .then(r => {
+              return (r.data || []).map(p => ({
+                ...p,
+                _yesCount: (p.proposal_votes || []).filter(v => v.vote === 'yes').length,
+                _noCount:  (p.proposal_votes || []).filter(v => v.vote === 'no').length,
+              }));
+            }),
           getLeagueSettings(id),
         ]);
         leagueBlocks.push({ id, info, proposals, settings });
@@ -137,7 +143,24 @@ function buildCommProposalRow(p) {
         <button class="btn-put-vote" onclick="putToVote('${p.id}')">Put to Vote</button>
       </div>`;
   } else if (p.status === 'voting') {
-    actions = `<button class="btn-close-vote" onclick="closeVote('${p.id}')">Close Vote</button>`;
+    // Fetch vote tally inline from already-loaded data
+    const yesCount = p._yesCount ?? '?';
+    const noCount  = p._noCount  ?? '?';
+    actions = `
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div style="font-size:11px;color:var(--text2);text-align:right">
+          <span style="color:var(--green)">✓ ${yesCount} yes</span> · 
+          <span style="color:var(--red)">✗ ${noCount} no</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-pass" onclick="closeVote('${p.id}','passed')">✓ Pass</button>
+          <button class="btn-fail" onclick="closeVote('${p.id}','failed')">✗ Fail</button>
+        </div>
+      </div>`;
+  } else if (p.status === 'passed') {
+    actions = `<span style="font-size:11px;color:var(--green);font-weight:600">✓ Passed</span>`;
+  } else if (p.status === 'failed') {
+    actions = `<span style="font-size:11px;color:var(--red);font-weight:600">✗ Failed</span>`;
   } else {
     actions = `<span style="font-size:11px;color:var(--text3)">Closed</span>`;
   }
@@ -174,13 +197,15 @@ async function putToVote(proposalId) {
   }
 }
 
-async function closeVote(proposalId) {
+async function closeVote(proposalId, result) {
+  const label = result === 'passed' ? 'Passed ✓' : 'Failed ✗';
+  if (!confirm(`Mark this proposal as ${label}? This cannot be undone.`)) return;
   try {
     const { error } = await getSB().from('proposals')
-      .update({ status: 'closed' })
+      .update({ status: result })
       .eq('id', proposalId);
     if (error) throw error;
-    showToast('Vote closed.');
+    showToast(`Proposal ${label}`);
     await renderCommissionerPage();
   } catch(e) {
     showToast('Failed: ' + e.message, true);
