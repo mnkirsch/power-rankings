@@ -42,12 +42,17 @@ async function loadProposalsList() {
   const proposals = await getProposals(currentLeague.id);
   const list = document.getElementById('proposals-list');
 
+  const active   = proposals.filter(p => p.status === 'open' || p.status === 'voting');
+  const passed   = proposals.filter(p => p.status === 'passed');
+  const failed   = proposals.filter(p => p.status === 'failed');
+  const archived = [...passed, ...failed];
+
   if (!proposals.length) {
     list.innerHTML = '<div class="empty-state">No proposals yet.<br>Be the first to suggest a rule change!</div>';
     return;
   }
 
-  list.innerHTML = proposals.map(p => `
+  const renderCard = p => `
     <div class="proposal-card" onclick="openProposal('${p.id}')">
       <div class="proposal-card-top">
         <div class="proposal-card-title">${p.title}</div>
@@ -58,7 +63,45 @@ async function loadProposalsList() {
         <span>·</span>
         <span>${timeAgo(p.created_at)}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+
+  let html = '';
+
+  if (active.length) {
+    html += active.map(renderCard).join('');
+  } else {
+    html += '<div class="empty-state" style="padding:20px">No active proposals.</div>';
+  }
+
+  if (archived.length) {
+    html += `<div class="proposals-archive-header">
+      <div class="proposals-archive-title">Archive</div>
+    </div>
+    <div class="proposals-archive">
+      <div class="proposals-archive-col">
+        <div class="archive-col-title passed-title">✓ Passed</div>
+        ${passed.length
+          ? passed.map(p => `
+            <div class="archive-card passed-card" onclick="openProposal('${p.id}')">
+              <div class="archive-card-title">${p.title}</div>
+              <div class="archive-card-meta">${timeAgo(p.created_at)}</div>
+            </div>`).join('')
+          : '<div class="archive-empty">None yet</div>'}
+      </div>
+      <div class="proposals-archive-col">
+        <div class="archive-col-title failed-title">✗ Failed</div>
+        ${failed.length
+          ? failed.map(p => `
+            <div class="archive-card failed-card" onclick="openProposal('${p.id}')">
+              <div class="archive-card-title">${p.title}</div>
+              <div class="archive-card-meta">${timeAgo(p.created_at)}</div>
+            </div>`).join('')
+          : '<div class="archive-empty">None yet</div>'}
+      </div>
+    </div>`;
+  }
+
+  list.innerHTML = html;
 }
 
 function showProposalsList() {
@@ -134,10 +177,7 @@ async function loadProposalDetail(id) {
   const authorName = proposal.is_anonymous ? 'Anonymous' : proposal.author_display_name;
   document.getElementById('proposal-detail-content').innerHTML = `
     <div class="proposal-detail-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-        <div class="proposal-detail-title">${proposal.title}</div>
-        ${isCommissioner ? `<button onclick="deleteProposal('${proposal.id}')" style="background:rgba(255,77,106,.1);border:1px solid rgba(255,77,106,.25);color:var(--red);border-radius:6px;padding:4px 10px;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Delete</button>` : ''}
-      </div>
+      <div class="proposal-detail-title">${proposal.title}</div>
       <div class="proposal-detail-meta">
         <span>${authorName}</span>
         <span>·</span>
@@ -150,7 +190,7 @@ async function loadProposalDetail(id) {
 
   // Vote banner
   const banner = document.getElementById('proposal-vote-banner');
-  if (proposal.status === 'voting' || proposal.status === 'closed') {
+  if (['voting','closed','passed','failed'].includes(proposal.status)) {
     const yesVotes = pvotes.filter(v => v.vote === 'yes').length;
     const noVotes  = pvotes.filter(v => v.vote === 'no').length;
     const total    = pvotes.length;
@@ -164,7 +204,9 @@ async function loadProposalDetail(id) {
     banner.innerHTML = `
       <div class="vote-banner">
         <div class="vote-banner-title">
-          ${proposal.status === 'closed' ? '🔒 Vote Closed' : '🗳 Vote Open'}
+          ${proposal.status === 'passed' ? '✓ Passed' :
+            proposal.status === 'failed' ? '✗ Failed' :
+            proposal.status === 'closed' ? '🔒 Vote Closed' : '🗳 Vote Open'}
         </div>
         ${deadline && proposal.status === 'voting' ? `<div class="vote-banner-deadline">Closes ${deadline}</div>` : ''}
         ${proposal.status === 'voting' && !myVote ? `
@@ -190,7 +232,7 @@ async function loadProposalDetail(id) {
   }
 
   // Hide reply form if closed
-  if (proposal.status === 'closed') {
+  if (['closed','passed','failed'].includes(proposal.status)) {
     hide('reply-form-wrap');
   } else {
     show('reply-form-wrap');
@@ -249,19 +291,6 @@ async function castProposalVote(proposalId, vote) {
     if (error) throw error;
     showToast(`Voted ${vote}!`);
     await loadProposalDetail(proposalId);
-  } catch(e) {
-    showToast('Failed: ' + e.message, true);
-  }
-}
-
-async function deleteProposal(id) {
-  if (!confirm('Delete this proposal? This cannot be undone.')) return;
-  try {
-    const { error } = await getSB().from('proposals').delete().eq('id', id);
-    if (error) throw error;
-    showToast('Proposal deleted.');
-    showProposalsList();
-    await loadProposalsList();
   } catch(e) {
     showToast('Failed: ' + e.message, true);
   }
