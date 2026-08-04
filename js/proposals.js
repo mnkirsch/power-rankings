@@ -4,6 +4,23 @@
 
 let currentProposalId = null;
 
+// ── "SEEN" TRACKING (per-device, localStorage) ────────────────────────────────
+
+const SEEN_KEY = 'fhq_seen_proposals';
+
+function getSeenSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function markProposalSeen(id) {
+  const seen = getSeenSet();
+  seen.add(id);
+  localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]));
+}
+function isProposalSeen(id) {
+  return getSeenSet().has(id);
+}
+
 // ── SUPABASE HELPERS ─────────────────────────────────────────────────────────
 
 async function getProposals(leagueId) {
@@ -42,6 +59,11 @@ async function loadProposalsList() {
   const proposals = await getProposals(currentLeague.id);
   const list = document.getElementById('proposals-list');
 
+  // Get my votes across all proposals in this league in one query
+  const { data: myVotes } = await getSB().from('proposal_votes')
+    .select('proposal_id').eq('voter_user_id', currentUser.user_id);
+  const myVotedIds = new Set((myVotes || []).map(v => v.proposal_id));
+
   const active   = proposals.filter(p => p.status === 'open' || p.status === 'voting');
   const passed   = proposals.filter(p => p.status === 'passed');
   const failed   = proposals.filter(p => p.status === 'failed');
@@ -52,11 +74,23 @@ async function loadProposalsList() {
     return;
   }
 
-  const renderCard = p => `
+  const renderCard = p => {
+    let actionTag = '';
+    if (!isProposalSeen(p.id)) {
+      actionTag = `<span class="proposal-tag tag-new">New</span>`;
+    } else if (p.status === 'voting') {
+      actionTag = myVotedIds.has(p.id)
+        ? `<span class="proposal-tag tag-voted">Voted</span>`
+        : `<span class="proposal-tag tag-needed">Vote Needed</span>`;
+    }
+    return `
     <div class="proposal-card" onclick="openProposal('${p.id}')">
       <div class="proposal-card-top">
         <div class="proposal-card-title">${p.title}</div>
-        <span class="proposal-status status-${p.status}">${p.status}</span>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          ${actionTag}
+          <span class="proposal-status status-${p.status}">${p.status}</span>
+        </div>
       </div>
       <div class="proposal-card-meta">
         <span>${p.is_anonymous ? 'Anonymous' : p.author_display_name}</span>
@@ -64,6 +98,7 @@ async function loadProposalsList() {
         <span>${timeAgo(p.created_at)}</span>
       </div>
     </div>`;
+  };
 
   let html = '';
 
@@ -157,6 +192,7 @@ async function submitProposal() {
 
 async function openProposal(id) {
   currentProposalId = id;
+  markProposalSeen(id);
   hide('proposals-list-view');
   hide('new-proposal-view');
   show('proposal-detail-view');
