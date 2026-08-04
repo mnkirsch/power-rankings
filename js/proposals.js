@@ -193,6 +193,10 @@ async function submitProposal() {
 async function openProposal(id) {
   currentProposalId = id;
   markProposalSeen(id);
+  // Refresh the list in the background so the "New" tag clears
+  // even if the user navigates back without a full reload
+  loadProposalsList();
+
   hide('proposals-list-view');
   hide('new-proposal-view');
   show('proposal-detail-view');
