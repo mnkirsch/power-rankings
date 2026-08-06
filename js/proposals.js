@@ -48,6 +48,34 @@ async function getProposalVotes(proposalId) {
   return data || [];
 }
 
+function buildProposalVoterStatus(pvotes) {
+  if (!leagueData?.sr) return '';
+  const votedUserIds = new Set(pvotes.map(v => v.voter_user_id));
+  const voted   = leagueData.sr.filter(r => votedUserIds.has(r.owner_id));
+  const missing = leagueData.sr.filter(r => !votedUserIds.has(r.owner_id));
+
+  return `
+    <div class="voter-status-card" style="margin-top:14px;margin-bottom:0">
+      <div class="voter-status-title">
+        Voter Status — ${voted.length}/${leagueData.sr.length} in
+      </div>
+      <div class="voter-status-cols">
+        <div class="voter-status-col">
+          <div class="vs-col-label vs-voted-label">✓ Voted</div>
+          ${voted.length
+            ? voted.map(r => `<div class="vs-name">${teamName(r, leagueData.um)}</div>`).join('')
+            : '<div class="vs-empty">No one yet</div>'}
+        </div>
+        <div class="voter-status-col">
+          <div class="vs-col-label vs-missing-label">⏳ Not Yet</div>
+          ${missing.length
+            ? missing.map(r => `<div class="vs-name">${teamName(r, leagueData.um)}</div>`).join('')
+            : '<div class="vs-empty">Everyone\'s in!</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
 // ── LIST VIEW ─────────────────────────────────────────────────────────────────
 
 async function renderProposalsPage() {
@@ -265,6 +293,7 @@ async function loadProposalDetail(id) {
             <div class="vote-result-no-fill"  style="width:${noPct}%"></div>
           </div>
         </div>
+        ${buildProposalVoterStatus(pvotes)}
       </div>`;
     show('proposal-vote-banner');
   } else {
