@@ -885,3 +885,25 @@ body::after {
 .tag-new    { background: rgba(77,159,255,.12); color: var(--blue); border: 1px solid rgba(77,159,255,.25); }
 .tag-needed { background: rgba(255,183,49,.14); color: var(--gold); border: 1px solid rgba(255,183,49,.3); }
 .tag-voted  { background: rgba(100,116,139,.12); color: var(--text2); border: 1px solid var(--border); }
+
+/* ── VOTER STATUS ── */
+.voter-status-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
+}
+.voter-status-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text2); margin-bottom: 10px;
+}
+.voter-status-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.voter-status-col { display: flex; flex-direction: column; gap: 4px; }
+.vs-col-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.vs-voted-label   { color: var(--green); }
+.vs-missing-label { color: var(--gold); }
+.vs-name { font-size: 13px; color: var(--text); padding: 2px 0; }
+.vs-empty { font-size: 12px; color: var(--text3); font-style: italic; }
