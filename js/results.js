@@ -5,14 +5,17 @@
 async function renderRankingsPage() {
   if (!leagueData) return;
   const { sr, um } = leagueData;
-  document.getElementById('res-week-chip').textContent = weekLabel(currentWeek);
-  
+  document.getElementById('res-week-chip').textContent = `Week ${currentWeek}`;
+
   const list = document.getElementById('results-list');
   list.innerHTML = '<div class="spinner" style="margin:30px auto"></div>';
   hide('ballot-section');
 
   const votes = await getVotesForWeek(currentLeague.id, currentWeek);
   const voteCount = votes.length;
+
+  // Voter status — who has and hasn't voted this week
+  renderVoterStatus(sr, um, votes);
 
   list.innerHTML = '';
   if (!voteCount) {
@@ -88,6 +91,34 @@ async function renderRankingsPage() {
 
   // Always render history below
   await renderHistorySection();
+}
+
+function renderVoterStatus(sr, um, votes) {
+  const el = document.getElementById('voter-status');
+  if (!el) return;
+
+  const votedUserIds = new Set(votes.map(v => v.voter_user_id));
+  const voted   = sr.filter(r => votedUserIds.has(r.owner_id));
+  const missing = sr.filter(r => !votedUserIds.has(r.owner_id));
+
+  el.innerHTML = `
+    <div class="voter-status-title">
+      Voter Status — ${votes.length}/${sr.length} in
+    </div>
+    <div class="voter-status-cols">
+      <div class="voter-status-col">
+        <div class="vs-col-label vs-voted-label">✓ Voted</div>
+        ${voted.length
+          ? voted.map(r => `<div class="vs-name">${teamName(r, um)}</div>`).join('')
+          : '<div class="vs-empty">No one yet</div>'}
+      </div>
+      <div class="voter-status-col">
+        <div class="vs-col-label vs-missing-label">⏳ Not Yet</div>
+        ${missing.length
+          ? missing.map(r => `<div class="vs-name">${teamName(r, um)}</div>`).join('')
+          : '<div class="vs-empty">Everyone\'s in!</div>'}
+      </div>
+    </div>`;
 }
 
 function renderBallots(votes, ranked, um) {
