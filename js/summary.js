@@ -5,7 +5,7 @@
 async function renderSummaryPage() {
   if (!leagueData) return;
   document.getElementById('sum-week-chip').textContent = weekLabel(currentWeek);
-  
+
   const summaryRow = await getSummary(currentLeague.id, currentWeek);
 
   if (summaryRow?.summary_text) {
@@ -14,7 +14,7 @@ async function renderSummaryPage() {
     const date = new Date(summaryRow.generated_at).toLocaleDateString('en-US', {
       weekday: 'long', month: 'long', day: 'numeric',
     });
-    document.getElementById('summary-meta').textContent = `Generated ${date} · Week ${currentWeek}`;
+    document.getElementById('summary-meta').textContent = `Generated ${date} · ${weekLabel(currentWeek)}`;
     document.getElementById('summary-body').textContent = summaryRow.summary_text;
   } else {
     show('summary-empty');
@@ -98,7 +98,54 @@ async function generateSummary() {
         }).join('\n')
       : 'No power rankings compiled yet this week.';
 
-    const prompt = `You are a sharp fantasy football analyst writing the weekly power rankings recap for a private league called "${currentLeague.name}".
+    const isPreseason = currentWeek === 0;
+
+    let prompt;
+
+    if (isPreseason) {
+      // Preseason has no matchups/last-season rankings to reference —
+      // build a separate prompt focused on offseason storylines instead.
+      const { data: proposals } = await getSB().from('proposals')
+        .select('*').eq('league_id', currentLeague.id)
+        .order('created_at', { ascending: false }).limit(8);
+
+      const proposalsText = proposals?.length
+        ? proposals.map(p => `- "${p.title}" — ${p.status}${p.is_anonymous ? '' : ` (proposed by ${p.author_display_name})`}`).join('\n')
+        : 'No proposals on record.';
+
+      const rankVoteText = curHistory.length
+        ? curHistory.sort((a, b) => a.rank - b.rank).map(h => `${h.rank}. ${h.team_name}`).join('\n')
+        : 'No preseason power rankings vote yet.';
+
+      prompt = `You are a sharp fantasy football analyst writing a preseason kickoff post for a private dynasty league called "${currentLeague.name}".
+
+This is BEFORE the season starts — there are no games, matchups, or in-season stats yet. Do not reference games, scores, or weekly matchups. Instead write a season-opening hype piece covering:
+1. The general mood heading into the season — what's changed since last year based on any rule proposals
+2. Any preseason power rankings vote results, framed as "here's how the league sees the landscape" rather than results from games
+3. Notable offseason rule changes that passed or failed and what they mean for how the season will play out
+4. A confident, hype-building close that gets people excited for kickoff
+
+Tone: Confident and direct, like a good sports columnist previewing a season. Genuine personality, no forced humor or catchphrases. No emoji overload.
+
+Target length: 300–400 words. Flowing paragraphs only, no bullet points.
+
+---
+LEAGUE: ${currentLeague.name}
+
+CURRENT ROSTER STANDINGS (from last season, for context only — do not treat as this season's results):
+${standingsText}
+
+PRESEASON POWER RANKINGS VOTE:
+${rankVoteText}
+
+RECENT LEAGUE RULE PROPOSALS:
+${proposalsText}
+---
+
+Write the preseason kickoff post now:`;
+
+    } else {
+      prompt = `You are a sharp fantasy football analyst writing the weekly power rankings recap for a private league called "${currentLeague.name}".
 
 Write a compelling weekly summary covering:
 1. The overall league picture and standings
@@ -127,6 +174,7 @@ VOTES RECEIVED: ${votes.length} / ${sr.length}
 ---
 
 Write the summary:`;
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -154,7 +202,7 @@ Write the summary:`;
 
     hide('summary-empty');
     show('summary-content');
-    document.getElementById('summary-meta').textContent = `Generated just now · Week ${currentWeek}`;
+    document.getElementById('summary-meta').textContent = `Generated just now · ${weekLabel(currentWeek)}`;
     document.getElementById('summary-body').textContent = summaryText;
     showToast('Summary generated and saved! ✨');
 
